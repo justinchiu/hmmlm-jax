@@ -1,0 +1,14 @@
+### jax stuff
+jax
+jaxlib
+
+### data
+torchtext
+
+### wandb for logging
+wandb
+
+
+### pytorch for compat
+pytorch
+tvm
