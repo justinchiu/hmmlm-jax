@@ -1,13 +1,8 @@
 
 import sys
 
-import yaml
-
 import numpy as np
 import torch as th
-
-import matplotlib.pyplot as plt
-
 
 class Pack(dict):
     def __getattr__(self, name):
@@ -34,12 +29,6 @@ def set_seed(seed):
         th.cuda.manual_seed(seed)
     np.random.seed(seed)
 
-
-def get_config(path, device):
-    with open(path, "r") as f:
-        pack = Pack(yaml.load(f, Loader = yaml.Loader))
-        pack.device = device
-        return pack
 
 def get_name(config):
     return "_".join([
@@ -161,6 +150,8 @@ def log_eye(K, dtype, device):
     return x
 
 def plot_counts(counts):
+    import matplotlib.pyplot as plt
+
     num_c, num_w = counts.shape
     words = [
         13, 29, 67, 111, 131, 171, 373, 567, 700, 800,

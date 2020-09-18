@@ -12,3 +12,4 @@ wandb
 ### pytorch for compat
 pytorch
 tvm
+pytorch-struct # need to install by hand?

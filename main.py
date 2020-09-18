@@ -23,7 +23,7 @@ from datasets.data import BucketIterator, BPTTIterator
 
 from args import get_args
 
-from utils import set_seed, get_config, get_name, get_mask_lengths
+from utils import set_seed, get_name, get_mask_lengths
 from utils import Pack
 from utils import plot_counts
 
