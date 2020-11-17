@@ -1,5 +1,6 @@
 
 import sys
+import random
 
 import numpy as np
 import torch as th
@@ -28,6 +29,7 @@ def set_seed(seed):
     if th.cuda.is_available():
         th.cuda.manual_seed(seed)
     np.random.seed(seed)
+    random.seed(seed)
 
 
 def get_name(config):

@@ -170,12 +170,9 @@ class WikiText2(LanguageModelingDataset):
     dirname = 'wikitext-2'
 
     @classmethod
-    def splits(cls, text_field, root='.data', train='wiki.train.tokens.flat',
-               validation='wiki.valid.tokens.flat', test='wiki.test.tokens.flat',
+    def splits(cls, text_field, root='.data', train='wiki.train.tokens',
+               validation='wiki.valid.tokens', test='wiki.test.tokens',
                **kwargs):
-    #def splits(cls, text_field, root='.data', train='wiki.train.tokens',
-               #validation='wiki.valid.tokens', test='wiki.test.tokens',
-               #**kwargs):
         """Create dataset objects for splits of the WikiText-2 dataset.
         This is the most flexible way to use the dataset.
         Arguments:

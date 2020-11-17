@@ -146,7 +146,7 @@ def get_fb(size):
         x = x.permute(1, 0, 3, 2)
         if mask is not None:
             mask = mask.t()
-            x[~mask[1:]] = lex
+            x[~mask] = lex
             """
             x.masked_scatter_(
                 ~mask[1:,:,None,None],
@@ -198,7 +198,8 @@ def get_fb(size):
         log_marginals += betas[1:].view(time, batch, 1, size)
         log_marginals -= alphas[-1].logsumexp(-1).view(1, -1, 1, 1)
         if mask is not None:
-            log_marginals.masked_fill_(~mask[1:,:,None,None], float("-inf"))
+            #log_marginals.masked_fill_(~mask[1:,:,None,None], float("-inf"))
+            log_marginals.masked_fill_(~mask[:,:,None,None], float("-inf"))
         log_marginals = log_marginals.permute(1, 0, 3, 2)
         return log_marginals, alphas
         #marginals = log_marginals.exp()
