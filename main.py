@@ -27,10 +27,6 @@ from utils import set_seed, get_name, get_mask_lengths
 from utils import Pack
 from utils import plot_counts
 
-import wandb
-
-#th.autograd.set_detect_anomaly(True)
-
 valid_schedules = ["reducelronplateau"]
 
 WANDB_STEP = -1
@@ -47,7 +43,8 @@ def update_best_valid(
     if valid_losses.evidence > BEST_VALID:
         # do not save on dryruns
         #if wandb.run.mode == "run":
-        if not wandb.run._settings._offline:
+        #if not wandb.run._settings._offline:
+        if False:
             save_f = f"wandb_checkpoints/{name}/{WANDB_STEP}_{-valid_losses.evidence / valid_n:.2f}.pth"
             print(f"Saving model to {save_f}")
             Path(save_f).parent.mkdir(parents=True, exist_ok=True)
@@ -62,8 +59,8 @@ def update_best_valid(
             PREV_SAVE = save_f
 
         BEST_VALID = valid_losses.evidence
-        wandb.run.summary["best_valid_ppl"] = math.exp(-BEST_VALID / valid_n)
-        wandb.run.summary["best_valid_loss"] = BEST_VALID / valid_n
+        #wandb.run.summary["best_valid_ppl"] = math.exp(-BEST_VALID / valid_n)
+        #wandb.run.summary["best_valid_loss"] = BEST_VALID / valid_n
 
 
 def report(losses, n, prefix, start_time=None):
@@ -248,17 +245,6 @@ def train_loop(
             if args.iterator == "bucket":
                 lpz = None
                 last_states = None
-            #print(" ".join([model.V.itos[x] for x in text[0].tolist()]))
-
-            # set noise scale
-            if hasattr(model, "noise_scale"):
-                noise_scale = noise_scales[
-                    min(WANDB_STEP, args.noise_anneal_steps-1)
-                ] if args.noise_anneal_steps > 0 else model.init_noise_scale
-                model.noise_scale = noise_scale
-                wandb.log({
-                    "noise_scale": noise_scale,
-                }, step=WANDB_STEP)
 
             mask, lengths, n_tokens = get_mask_lengths(text, V)
             if model.timing:
@@ -288,10 +274,10 @@ def train_loop(
                 scheduler.step()
             optimizer.step()
             #import pdb; pdb.set_trace()
-            wandb.log({
-                "running_training_loss": total_ll / n,
-                "running_training_ppl": math.exp(min(-total_ll / n, 700)),
-            }, step=WANDB_STEP)
+            #wandb.log({
+                #"running_training_loss": total_ll / n,
+                #"running_training_ppl": math.exp(min(-total_ll / n, 700)),
+            #}, step=WANDB_STEP)
 
             if verbose and i % args.report_every == args.report_every - 1:
                 report(
@@ -318,17 +304,17 @@ def train_loop(
                     args, V, valid_iter, model,
                 )
                 report(valid_losses, valid_n, "Valid eval", v_start_time)
-                wandb.log({
-                    "valid_loss": valid_losses.evidence / valid_n,
-                    "valid_ppl": math.exp(-valid_losses.evidence / valid_n),
-                }, step=WANDB_STEP)
+                #wandb.log({
+                    #"valid_loss": valid_losses.evidence / valid_n,
+                    #"valid_ppl": math.exp(-valid_losses.evidence / valid_n),
+                #}, step=WANDB_STEP)
 
                 update_best_valid(
                     valid_losses, valid_n, model, optimizer, scheduler, args.name)
 
-                wandb.log({
-                    "lr": optimizer.param_groups[0]["lr"],
-                }, step=WANDB_STEP)
+                #wandb.log({
+                    #"lr": optimizer.param_groups[0]["lr"],
+                #}, step=WANDB_STEP)
                 scheduler.step(valid_losses.evidence)
 
                 # remove this later?
@@ -340,19 +326,19 @@ def train_loop(
                     #cg3 = counts > 1e-3
                     cg2 = counts > 1e-2
 
-                    wandb.log({
+                    #wandb.log({
                         #"avgcounts@1e-4": cg4.sum().item() / float(v),
                         #"avgcounts@1e-3": cg3.sum().item() / float(v),
-                        "avgcounts@1e-2": cg2.sum().item() / float(v),
+                        #"avgcounts@1e-2": cg2.sum().item() / float(v),
                         #"maxcounts@1e-4": cg4.sum(0).max().item() / float(v),
                         #"maxcounts@1e-3": cg3.sum(0).max().item() / float(v),
-                        "maxcounts@1e-2": cg2.sum(0).max().item(),
+                        #"maxcounts@1e-2": cg2.sum(0).max().item(),
                         #"mincounts@1e-4": cg4.sum(0).min().item() / float(v),
                         #"mincounts@1e-3": cg3.sum(0).min().item() / float(v),
-                        "mincounts@1e-2": cg2.sum(0).min().item(),
-                        "maxcounts": counts.sum(0).max().item(),
-                        "mincounts": counts.sum(0).min().item(),
-                    }, step=WANDB_STEP)
+                        #"mincounts@1e-2": cg2.sum(0).min().item(),
+                        #"maxcounts": counts.sum(0).max().item(),
+                        #"mincounts": counts.sum(0).min().item(),
+                    #}, step=WANDB_STEP)
                     del cg2
                     del counts
 
@@ -415,7 +401,7 @@ def main():
 
     name = get_name(args)
     import tempfile
-    wandb.init(project="hmm-lm", name=name, config=args, dir=tempfile.mkdtemp())
+    #wandb.init(project="hmm-lm", name=name, config=args, dir=tempfile.mkdtemp())
     args.name = name
 
     model = None
@@ -425,7 +411,7 @@ def main():
     print(model)
     num_params, num_trainable_params = count_params(model)
     print(f"Num params, trainable: {num_params:,}, {num_trainable_params:,}")
-    wandb.run.summary["num_params"] = num_params
+    #wandb.run.summary["num_params"] = num_params
 
     if args.eval_only:
         model.load_state_dict(th.load(args.eval_only)["model"])
@@ -522,16 +508,16 @@ def main():
         update_best_valid(
             valid_losses, valid_n, model, optimizer, scheduler, args.name)
 
-        wandb.log({
-            "train_loss": train_losses.evidence / train_n,
-            "train_ppl": math.exp(-train_losses.evidence / train_n),
-            "epoch_time": total_time,
-            "valid_loss": valid_losses.evidence / valid_n,
-            "valid_ppl": math.exp(-valid_losses.evidence / valid_n),
-            "best_valid_loss": BEST_VALID / valid_n,
-            "best_valid_ppl": math.exp(-BEST_VALID / valid_n),
-            "epoch": e,
-        }, step=WANDB_STEP)
+        #wandb.log({
+            #"train_loss": train_losses.evidence / train_n,
+            #"train_ppl": math.exp(-train_losses.evidence / train_n),
+            #"epoch_time": total_time,
+            #"valid_loss": valid_losses.evidence / valid_n,
+            #"valid_ppl": math.exp(-valid_losses.evidence / valid_n),
+            #"best_valid_loss": BEST_VALID / valid_n,
+            #"best_valid_ppl": math.exp(-BEST_VALID / valid_n),
+            #"epoch": e,
+        #}, step=WANDB_STEP)
 
         if args.log_counts > 0 and args.keep_counts > 0:
             # TODO: FACTOR OUT
@@ -551,26 +537,26 @@ def main():
             sc4 = (model.state_counts == 4).sum()
             sc5 = (model.state_counts >= 5).sum()
 
-            wandb.log({
+            #wandb.log({
                 #"avgcounts@1e-4": cg4.sum().item() / float(v),
                 #"avgcounts@1e-3": cg3.sum().item() / float(v),
-                "avgcounts@1e-2": cg2.sum().item() / float(v),
+                #"avgcounts@1e-2": cg2.sum().item() / float(v),
                 #"maxcounts@1e-4": cg4.sum(0).max().item() / float(v),
                 #"maxcounts@1e-3": cg3.sum(0).max().item() / float(v),
-                "maxcounts@1e-2": cg2.sum(0).max().item(),
+                #"maxcounts@1e-2": cg2.sum(0).max().item(),
                 #"mincounts@1e-4": cg4.sum(0).min().item() / float(v),
                 #"mincounts@1e-3": cg3.sum(0).min().item() / float(v),
-                "mincounts@1e-2": cg2.sum(0).min().item(),
-                "maxcounts": counts.sum(0).max().item(),
-                "mincounts": counts.sum(0).min().item(),
+                #"mincounts@1e-2": cg2.sum(0).min().item(),
+                #"maxcounts": counts.sum(0).max().item(),
+                #"mincounts": counts.sum(0).min().item(),
 
-                "statecounts=0": sc0,
-                "statecounts=1": sc1,
-                "statecounts=2": sc2,
-                "statecounts=3": sc3,
-                "statecounts=4": sc4,
-                "statecounts>=5": sc5,
-            }, step=WANDB_STEP)
+                #"statecounts=0": sc0,
+                #"statecounts=1": sc1,
+                #"statecounts=2": sc2,
+                #"statecounts=3": sc3,
+                #"statecounts=4": sc4,
+                #"statecounts>=5": sc5,
+            #}, step=WANDB_STEP)
             del cg2
             del counts
 

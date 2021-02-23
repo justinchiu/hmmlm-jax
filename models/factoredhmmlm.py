@@ -418,9 +418,24 @@ class FactoredHmmLm(nn.Module):
         log_potentials, mask, lengths,
         keep_counts = False,
     ):
+        blah = False
+        if blah:
+            import strux
+            lc = strux.LinearChain()
+            lpnp = log_potentials.cpu().detach().numpy()#.transpose(0, 1, 3, 2)
+            with open("test.npy", "wb") as f:
+                np.save(f, lpnp)
+            lengthsnp = lengths.cpu().detach().numpy()
+            Z = lc.sum(lpnp, lengthsnp+1) # weird off by 1?
+            margs = lc.marginals(lpnp, lengthsnp+1)
+            # cool, Z ~= alpha_T2.logsumexp(-1) {the evidence}
+            # margs ~= log_m2.exp()
+            elbo_jax = lpnp * margs
+            elbo_jax = elbo_jax[~np.isnan(elbo_jax)].sum()
+             
         N = lengths.shape[0]
         fb = self.fb_train if self.training else self.fb_test
-        log_m, alphas = fb(log_potentials, mask=mask[:,1:] if self.eval_shorter else mask)
+        log_m, alphas = fb(log_potentials.clone(), mask=mask[:,1:] if self.eval_shorter else mask)
 
         idx = th.arange(N, device=self.device)
         alpha_T = alphas[lengths-1 if self.eval_shorter else lengths, idx]
@@ -428,7 +443,13 @@ class FactoredHmmLm(nn.Module):
         #elbo = (log_m.exp_() * log_potentials)[mask[:,1:]].sum()
         elbo = (log_m.exp_() * log_potentials)[
             mask[:,1:] if self.eval_shorter else mask
-        ].sum()
+        ]
+        elbo = elbo[elbo == elbo].sum()
+
+        if blah:
+            # compare here, Z v evidence, margs v log_m, elbo_jax
+            import pdb; pdb.set_trace()
+
 
         return Pack(
             elbo = elbo,
@@ -465,6 +486,22 @@ class FactoredHmmLm(nn.Module):
         fb = self.fb_train if self.training else self.fb_test
         idx = th.arange(N, device=self.device)
 
+        blah = False
+        if blah:
+            import strux
+            lc = strux.LinearChain()
+            lpnp = log_potentials.cpu().detach().numpy()
+            with open("test.npy", "wb") as f:
+                np.save(f, lpnp)
+            lengthsnp = lengths.cpu().detach().numpy()
+            Z = lc.sum(lpnp, lengthsnp+1) # weird off by 1?
+            margs = lc.marginals(lpnp, lengthsnp+1)
+            # cool, Z ~= alpha_T2.logsumexp(-1) {the evidence}
+            # margs ~= log_m2.exp()
+            elbo_jax = lpnp * margs
+            elbo_jax = elbo_jax[~np.isnan(elbo_jax)].sum()
+            # elbo is close, as well
+
         if self.train_shorter:
             # original
             with th.no_grad():
@@ -477,7 +514,7 @@ class FactoredHmmLm(nn.Module):
             with th.no_grad():
                 #log_m2, alphas2 = fb(lp2.detach(), mask=mask)
                 # No mask for testing...necessary at end of batch
-                log_m, alphas = fb(log_potentials.detach(), mask=mask)
+                log_m, alphas = fb(log_potentials.detach().clone(), mask=mask)
             alpha_T = alphas[lengths, idx]
             evidence = alpha_T.logsumexp(-1).sum()
             elbo = (log_m.exp() * log_potentials)[mask]
@@ -491,20 +528,10 @@ class FactoredHmmLm(nn.Module):
         #print(th.allclose(log_m[:, 1:], log_m2[:, 2:], rtol=1e-4, atol=0))
         #print(th.allclose(log_m[:, 1:], log_m2[:, 2:], rtol=1e-3, atol=0))
 
-        """
-        import strux
-        lc = strux.LinearChain()
-        lpnp = log_potentials.cpu().detach().numpy()
-        lengthsnp = lengths.cpu().detach().numpy()
-        Z = lc.sum(lpnp, lengthsnp+1) # weird off by 1?
-        margs = lc.marginals(lpnp, lengthsnp+1)
-        # cool, Z ~= alpha_T2.logsumexp(-1) {the evidence}
-        # margs ~= log_m2.exp()
-        elbo_jax = lpnp * margs
-        elbo_jax = elbo_jax[~np.isnan(elbo_jax)].sum()
-        # elbo is close, as well
-        import pdb; pdb.set_trace()
-        """
+        if blah:
+            # check Z vs evidence
+            # check elbo_jax vs elbo
+            import pdb; pdb.set_trace()
 
         # bookkeeping for bptt
         last_words = text[idx, lengths-1]
